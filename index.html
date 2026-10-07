@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Storico Incassi</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Incassi">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0f6b4f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
+<link rel="icon" type="image/png" href="icona-192.png">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,-apple-system,sans-serif;background:#f3f4f1}
+@media (prefers-color-scheme:dark){body{background:#121715}}
+img{max-width:100%}
+[hidden]{display:none!important}
+#accesso{min-height:80vh;display:grid;place-items:center;padding:24px 16px;font-family:system-ui,-apple-system,sans-serif}
+#accesso form{width:100%;max-width:340px;display:grid;gap:14px;text-align:center}
+#accesso img{width:84px;height:84px;border-radius:20px;margin:0 auto}
+#accesso h1{margin:0;font-size:24px;color:#1b2320}
+#accesso p{margin:0;color:#5f6b66;font-size:14px}
+#accesso input{font-size:17px;padding:12px 14px;border-radius:10px;border:1px solid #c9d1cc;background:#fff;color:#1b2320}
+#accesso button{font-size:17px;font-weight:600;padding:12px;border-radius:10px;border:0;background:#0f6b4f;color:#fff;cursor:pointer}
+#accesso .errore{color:#b73b2e;min-height:1.2em}
+#accesso label{display:flex;gap:8px;align-items:center;justify-content:center;color:#5f6b66;font-size:14px}
+@media (prefers-color-scheme:dark){#accesso h1{color:#e7ece9}#accesso p,#accesso label{color:#9aa7a1}#accesso input{background:#1a211e;border-color:#2c3531;color:#e7ece9}}
+#esci{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:12px;padding:6px 10px;border-radius:99px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.12);color:inherit;opacity:.7}
+</style>
+</head>
+<body>
+<div id="accesso">
+  <form id="f-accesso" autocomplete="on">
+    <img src="icona-180.png" alt="">
+    <h1>Storico Incassi</h1>
+    <p>DM Commerciale srl</p>
+    <input type="password" id="pw" name="password" placeholder="Password" autocomplete="current-password" required>
+    <label><input type="checkbox" id="ricorda" checked> Ricorda su questo dispositivo</label>
+    <button type="submit" id="entra">Entra</button>
+    <div class="errore" id="errore"></div>
+  </form>
+</div>
+<div id="app" hidden>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: registro contabile a colpo d'occhio - riepilogo in alto, grafici, poi la griglia anni x mesi come il foglio Excel */
+:root{
+  --bg:#f3f4f1; --panel:#ffffff; --ink:#1b2320; --muted:#5f6b66; --line:#dde2de; --soft:#eceeea;
+  --accent:#0f6b4f; --accent-soft:#d9ece4;
+  --s1:#1f7a57; --s2:#2f5fa8; --s3:#b0487a;
+  --up:#1d7a46; --down:#b73b2e; --heat:15,107,79;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121715; --panel:#1a211e; --ink:#e7ece9; --muted:#9aa7a1; --line:#2c3531; --soft:#222a27;
+  --accent:#4cc298; --accent-soft:#1d3a30; --s1:#4cc298; --s2:#78a6ee; --s3:#e183b0;
+  --up:#5fcf8c; --down:#f0806f; --heat:76,194,152; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --panel:#1a211e; --ink:#e7ece9; --muted:#9aa7a1; --line:#2c3531; --soft:#222a27;
+  --accent:#4cc298; --accent-soft:#1d3a30; --s1:#4cc298; --s2:#78a6ee; --s3:#e183b0;
+  --up:#5fcf8c; --down:#f0806f; --heat:76,194,152; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:22px 48px;display:grid;gap:18px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:700}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+.stato{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--soft);font-size:12px;color:var(--muted)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.pill.warn i{background:var(--down)}
+
+.controlli{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--soft);padding:4px;border-radius:10px}
+.seg button{border:0;background:transparent;color:var(--ink);font:500 14px var(--f-body);padding:7px 12px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.seg button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+.seg button:focus-visible,select:focus-visible,td.cl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+label.anno{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+select{font:500 14px var(--f-body);padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+
+.kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.k{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:4px;min-width:0}
+.k .v{font-family:var(--f-num);font-size:clamp(19px,2.3vw,25px);font-weight:500;letter-spacing:-.02em}
+.k .d{font-size:13px}
+.up{color:var(--up)} .down{color:var(--down)}
+
+.pannello{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:12px;min-width:0}
+.testa{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px}
+.due{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--muted);font-family:var(--f-body);font-size:11px}
+svg .val{fill:var(--ink);font-family:var(--f-num);font-size:10.5px}
+svg text.dn{font-size:9.5px} svg text.dw{font-size:8.5px} svg text.dom{fill:var(--down)}
+.griglia line{stroke:var(--line)}
+
+.scorri{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.03em;text-transform:uppercase;position:sticky;top:0;background:var(--panel)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+td{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+td:first-child{font-family:var(--f-body);font-weight:600}
+td.tot{font-weight:600;border-left:1px solid var(--line)}
+td.cl{cursor:pointer}
+td.cl:hover{outline:1px solid var(--accent);outline-offset:-1px}
+td.sel{outline:2px solid var(--accent);outline-offset:-2px}
+td.xl::after{content:"·";color:var(--muted);margin-left:2px}
+tr.anno-sel td:first-child{color:var(--accent)}
+.nota{font-size:12.5px;color:var(--muted)}
+
+.giorni{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+.navg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.navg button{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 15px var(--f-body);min-width:38px;height:36px;padding:0 10px;border-radius:8px;cursor:pointer}
+.navg button:disabled{opacity:.4;cursor:default}
+.navg input{font:500 14px var(--f-body);height:36px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.navg button:focus-visible,.navg input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.schede{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.scheda{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:3px;min-width:0}
+.scheda.totale{background:var(--accent-soft);border-color:transparent}
+.scheda .n{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.scheda .v{font-family:var(--f-num);font-size:22px;font-weight:500;letter-spacing:-.02em}
+.scheda .r{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.scheda .r b{font-weight:600}
+.chiuso{color:var(--muted);font-style:italic}
+tr.dom td:first-child{color:var(--down)}
+tr.gsel td{background:var(--accent-soft)}
+tr.gsel td:first-child{background:var(--accent-soft)}
+tr.cliccabile{cursor:pointer}
+h3{font:600 14px var(--f-body);margin:4px 0 0;color:var(--muted)}
+.vuoto{padding:28px 10px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+footer{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+
+@media (max-width:900px){.kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.due,.giorni{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:420px){.seg button{padding:6px 9px;font-size:13px}}
+@media (max-width:640px){svg text{font-size:17px}svg .val{font-size:15px}svg text.dn{font-size:13px} svg text.dw{font-size:0}}
+@media (prefers-reduced-motion:no-preference){.barra{transition:opacity .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">DM Commerciale srl · corrispettivi dei punti vendita</div>
+      <h1>Storico Incassi</h1>
+    </div>
+    <div class="stato" id="stato"></div>
+  </header>
+
+  <div class="controlli">
+    <div class="seg" id="negozi" role="group" aria-label="Punto vendita"></div>
+    <label class="anno" for="sel-anno">Anno <select id="sel-anno"></select></label>
+  </div>
+
+  <section class="kpi" id="kpi"></section>
+
+  <section class="pannello" id="p-giorno">
+    <div class="testa">
+      <h2 id="t-giorno">Incasso del giorno</h2>
+      <div class="navg">
+        <button type="button" id="g-prec" aria-label="Giorno prima">‹</button>
+        <input type="date" id="g-data" aria-label="Scegli il giorno">
+        <button type="button" id="g-succ" aria-label="Giorno dopo">›</button>
+        <button type="button" id="g-ultimo">Ultimo</button>
+      </div>
+    </div>
+    <div class="schede" id="g-schede"></div>
+    <h3 id="t-elenco">Ultimi 14 giorni</h3>
+    <div class="scorri"><table id="tab-giorni"></table></div>
+    <div class="nota">Ogni giorno è confrontato con lo stesso giorno della settimana, 7 giorni prima e un anno prima (52 settimane). Tocca una riga per vedere quel giorno.</div>
+  </section>
+
+  <div class="due">
+    <section class="pannello">
+      <div class="testa"><h2>Incasso per anno</h2><div class="legenda" id="leg-anni"></div></div>
+      <div id="g-anni" class="g-anni"></div>
+    </section>
+    <section class="pannello">
+      <div class="testa"><h2 id="t-mesi">Mese per mese</h2><div class="legenda" id="leg-mesi"></div></div>
+      <div id="g-mesi"></div>
+    </section>
+  </div>
+
+  <section class="pannello">
+    <div class="testa">
+      <h2>Tutti gli anni</h2>
+      <div class="seg" id="vista" role="group" aria-label="Valori della tabella">
+        <button type="button" data-v="euro" aria-pressed="true">Incasso €</button>
+        <button type="button" data-v="perc" aria-pressed="false">Var. % sull'anno prima</button>
+      </div>
+    </div>
+    <div class="scorri"><table id="tab-anni"></table></div>
+    <div class="nota">Tocca un mese per vedere i singoli giorni. Il puntino · indica un valore preso dal foglio Excel (mesi senza dati dalle casse).</div>
+  </section>
+
+  <section class="pannello" id="p-giorni">
+    <div class="testa"><h2 id="t-giorni">Giorno per giorno</h2><div class="legenda" id="leg-giorni"></div></div>
+    <div id="giorni"></div>
+  </section>
+
+  <section class="pannello">
+    <div class="testa"><h2 id="t-negozi">Per punto vendita</h2></div>
+    <div class="scorri"><table id="tab-negozi"></table></div>
+  </section>
+
+  <footer id="piede"></footer>
+</div>
+
+
+</div>
+<button type="button" id="esci" hidden>Esci</button>
+<script>
+const PROGRAMMA = "\nconst DATI = window.__DATI;\n\nconst MESI = [\"Gen\",\"Feb\",\"Mar\",\"Apr\",\"Mag\",\"Giu\",\"Lug\",\"Ago\",\"Set\",\"Ott\",\"Nov\",\"Dic\"];\nconst MESI_LUNGHI = [\"gennaio\",\"febbraio\",\"marzo\",\"aprile\",\"maggio\",\"giugno\",\"luglio\",\"agosto\",\"settembre\",\"ottobre\",\"novembre\",\"dicembre\"];\nconst GIORNI_SETT = [\"dom\",\"lun\",\"mar\",\"mer\",\"gio\",\"ven\",\"sab\"];\nconst COLORI = {\"2241\":\"var(--s1)\",\"2242\":\"var(--s2)\",\"SOAP\":\"var(--s3)\"};\nconst $ = s => document.querySelector(s);\nconst eur0 = new Intl.NumberFormat(\"it-IT\",{maximumFractionDigits:0});\nconst eur2 = new Intl.NumberFormat(\"it-IT\",{minimumFractionDigits:2,maximumFractionDigits:2});\nconst e0 = v => v==null ? \"\u2013\" : \"\u20ac \" + eur0.format(v);\nconst e2 = v => v==null ? \"\u2013\" : \"\u20ac \" + eur2.format(v);\nconst kEur = v => v>=1e6 ? (v/1e6).toLocaleString(\"it-IT\",{maximumFractionDigits:2})+\" mln\" : Math.round(v/1000)+\"k\";\nconst pad = n => String(n).padStart(2,\"0\");\nfunction perc(a,b){ if(a==null||!b) return null; return (a-b)/b*100; }\nfunction fPerc(p){ if(p==null) return \"\u2013\"; return (p>=0?\"+\":\"\u2212\")+Math.abs(p).toLocaleString(\"it-IT\",{maximumFractionDigits:1})+\"%\"; }\nfunction cls(p){ return p==null?\"muted\":(p>=0?\"up\":\"down\"); }\nfunction esc(s){ return String(s).replace(/[&<>\"]/g,c=>({\"&\":\"&amp;\",\"<\":\"&lt;\",\">\":\"&gt;\",'\"':\"&quot;\"}[c])); }\n\n/* ---------- dati ---------- */\nconst D = DATI || {negozi:[],giorni:{},excel:{}};\nif(!D.negozi.length){\n  D.negozi = [{id:\"2241\",nome:\"Despar Via Belvedere\"},{id:\"2242\",nome:\"Despar Via Martina\"},{id:\"SOAP\",nome:\"Soap Shop\"}];\n}\nconst NEG = D.negozi.map(n=>n.id);\nconst NOME = Object.fromEntries(D.negozi.map(n=>[n.id,n.nome]));\n\n// mesi ricavati dai giorni delle casse: {negozio:{\"AAAA-MM\":[incasso,scontrini,giorni]}}\nconst MESI_CASSE = {}, PRIMO = {}, ULTIMO = {};\nfor(const n of NEG){\n  const g = (D.giorni||{})[n] || {};\n  const m = {};\n  for(const [d,[v,s]] of Object.entries(g)){\n    const k = d.slice(0,7);\n    const x = m[k] || (m[k]=[0,0,0]);\n    x[0]+=v; x[1]+=s; x[2]++;\n  }\n  MESI_CASSE[n]=m;\n  const chiavi = Object.keys(g).sort();\n  if(chiavi.length){ PRIMO[n]=chiavi[0]; ULTIMO[n]=chiavi[chiavi.length-1]; }\n}\nconst ULTIMO_GIORNO = Object.values(ULTIMO).sort().pop() || null;\n// data di riferimento per \"anno in corso\": ultimo giorno dalle casse, oppure il mese dopo l'ultimo mese del foglio Excel\nconst RIF = ULTIMO_GIORNO || (()=>{\n  const k = NEG.flatMap(n=>Object.keys((D.excel||{})[n]||{})).sort().pop();\n  if(!k) return null;\n  const d = new Date(+k.slice(0,4), +k.slice(5,7), 1);\n  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-01`;\n})();\n\n// valore di un mese: casse se ci sono (tranne il primo mese se l'archivio parte a meta'), altrimenti Excel\nfunction mese(n, ym){\n  const c = MESI_CASSE[n][ym], x = ((D.excel||{})[n]||{})[ym];\n  const parziale = PRIMO[n] && PRIMO[n].slice(0,7)===ym && +PRIMO[n].slice(8)>3;\n  if(c && !(parziale && x!=null)) return {v:c[0], s:c[1], g:c[2], fonte:\"casse\"};\n  if(x!=null) return {v:x, s:null, g:null, fonte:\"excel\"};\n  return null;\n}\nfunction meseSel(sel, ym){\n  let v=null, s=0, sOk=true, xl=false;\n  for(const n of sel){\n    const m = mese(n,ym); if(!m) continue;\n    v=(v||0)+m.v; if(m.s==null) sOk=false; else s+=m.s; if(m.fonte===\"excel\") xl=true;\n  }\n  return v==null?null:{v, s:sOk?s:null, xl};\n}\nconst ANNI = (()=>{\n  const a = new Set();\n  for(const n of NEG){ Object.keys(MESI_CASSE[n]).forEach(k=>a.add(+k.slice(0,4))); Object.keys((D.excel||{})[n]||{}).forEach(k=>a.add(+k.slice(0,4))); }\n  return [...a].sort((x,y)=>y-x);\n})();\nfunction anno(sel, y, finoMese=12){\n  let v=null, s=0, sOk=true;\n  for(let m=1;m<=finoMese;m++){ const x=meseSel(sel,`${y}-${pad(m)}`); if(x){ v=(v||0)+x.v; if(x.s==null) sOk=false; else s+=x.s; } }\n  return v==null?null:{v, s:sOk?s:null};\n}\n// somma dal 1 gennaio fino a mm-gg, usando i giorni delle casse\nfunction progressivo(sel, y, mmgg){\n  let v=0, s=0, trovati=false;\n  for(const n of sel){\n    const g=(D.giorni||{})[n]||{};\n    for(const [d,[a,b]] of Object.entries(g)){ if(d.startsWith(y+\"-\") && d.slice(5)<=mmgg){ v+=a; s+=b; trovati=true; } }\n  }\n  return trovati?{v,s}:null;\n}\nfunction haGiorni(sel, y){ return sel.every(n=>PRIMO[n] && PRIMO[n] <= `${y}-01-05`); }\n\n/* ---------- stato pagina ---------- */\nlet prefs = {};\ntry { prefs = JSON.parse(localStorage.getItem(\"storico-incassi\")||\"{}\"); } catch(e){}\nconst GRUPPI = [\n  {id:\"tutti\", nome:\"Tutto il gruppo\", neg:NEG},\n  {id:\"despar\", nome:\"I due Despar\", neg:NEG.filter(n=>n!==\"SOAP\")},\n  ...NEG.map(n=>({id:n, nome:NOME[n], neg:[n], colore:COLORI[n]}))\n];\nlet gruppo = GRUPPI.find(g=>g.id===prefs.gruppo) || GRUPPI[0];\nlet annoSel = ANNI.includes(prefs.anno) ? prefs.anno : ANNI[0];\nlet vista = \"euro\";\nlet meseAperto = null;\nfunction salva(){ try{ localStorage.setItem(\"storico-incassi\", JSON.stringify({gruppo:gruppo.id, anno:annoSel})); }catch(e){} }\n\n/* ---------- testata ---------- */\nfunction testata(){\n  const st = [];\n  if(D.aggiornato){\n    const [d,o] = D.aggiornato.split(\" \");\n    st.push(`<span class=\"pill\"><i><\/i>Aggiornato il ${d.split(\"-\").reverse().join(\"/\")} alle ${o}<\/span>`);\n  } else {\n    st.push(`<span class=\"pill warn\"><i><\/i>Solo dati del foglio Excel: in attesa del primo invio dalle casse<\/span>`);\n  }\n  if(ULTIMO_GIORNO) st.push(`<span>Ultimo giorno incassato: <b>${RIF.split(\"-\").reverse().join(\"/\")}<\/b><\/span>`);\n  $(\"#stato\").innerHTML = st.join(\"\");\n\n  $(\"#negozi\").innerHTML = GRUPPI.map(g=>`<button type=\"button\" data-g=\"${g.id}\" aria-pressed=\"${g===gruppo}\">${g.colore?`<span class=\"dot\" style=\"background:${g.colore}\"><\/span>`:\"\"}${esc(g.nome)}<\/button>`).join(\"\");\n  $(\"#negozi\").onclick = e=>{ const b=e.target.closest(\"button\"); if(!b) return; gruppo=GRUPPI.find(g=>g.id===b.dataset.g); salva(); tutto(); };\n  $(\"#sel-anno\").innerHTML = ANNI.map(a=>`<option value=\"${a}\"${a===annoSel?\" selected\":\"\"}>${a}<\/option>`).join(\"\");\n  $(\"#sel-anno\").value = String(annoSel);\n  $(\"#sel-anno\").onchange = e=>{ annoSel=+e.target.value; meseAperto=null; salva(); tutto(); };\n  $(\"#vista\").onclick = e=>{ const b=e.target.closest(\"button\"); if(!b) return; vista=b.dataset.v; [...$(\"#vista\").children].forEach(x=>x.setAttribute(\"aria-pressed\", x===b)); tabellaAnni(); };\n}\n\n/* ---------- riquadri ---------- */\nfunction kpi(){\n  const sel = gruppo.neg, y = annoSel, oggi = RIF;\n  const inCorso = oggi && +oggi.slice(0,4)===y;\n  let att, prec, etich;\n  if(inCorso && haGiorni(sel,y-1)){\n    const mmgg = oggi.slice(5);\n    att = progressivo(sel,y,mmgg); prec = progressivo(sel,y-1,mmgg);\n    etich = `dal 1/1 al ${+mmgg.slice(3)} ${MESI_LUNGHI[+mmgg.slice(0,2)-1]}`;\n  } else if(inCorso){\n    const m = +oggi.slice(5,7)-1;\n    att = anno(sel,y,m); prec = anno(sel,y-1,m);\n    etich = m ? `gennaio \u2013 ${MESI_LUNGHI[m-1]} (mesi chiusi)` : \"\";\n  } else {\n    att = anno(sel,y); prec = anno(sel,y-1); etich = \"anno intero\";\n  }\n  const p1 = perc(att&&att.v, prec&&prec.v);\n\n  // ultimo mese con dati nell'anno scelto\n  let um=null;\n  for(let m=12;m>=1;m--){ if(meseSel(sel,`${y}-${pad(m)}`)){ um=m; break; } }\n  const vm = um && meseSel(sel,`${y}-${pad(um)}`);\n  let vmPrec = um && meseSel(sel,`${y-1}-${pad(um)}`);\n  let notaMese = \"\";\n  if(um && inCorso && um===+oggi.slice(5,7) && haGiorni(sel,y-1)){\n    // mese in corso: confronto con gli stessi giorni dell'anno prima\n    const dd = oggi.slice(8); let v=0, ok=false;\n    for(const n of sel){ for(const [d,[a]] of Object.entries((D.giorni||{})[n]||{})){ if(d.startsWith(`${y-1}-${pad(um)}-`) && d.slice(8)<=dd){ v+=a; ok=true; } } }\n    vmPrec = ok?{v}:null; notaMese = ` \u00b7 fino al ${+dd}`;\n  }\n  const p2 = perc(vm&&vm.v, vmPrec&&vmPrec.v);\n\n  const sc = (vm && vm.s) ? vm.v/vm.s : null;\n  const scP = (vmPrec && vmPrec.s) ? vmPrec.v/vmPrec.s : null;\n\n  let best=null;\n  for(const a of ANNI){ if(inCorso && a===y) continue; const t=anno(sel,a); if(t && (!best||t.v>best.v)) best={a,v:t.v}; }\n\n  $(\"#kpi\").innerHTML = `\n    <div class=\"k\"><span class=\"eyebrow\">${y}${inCorso?\" finora\":\"\"}<\/span><span class=\"v\">${e0(att&&att.v)}<\/span>\n      <span class=\"d\"><b class=\"${cls(p1)}\">${fPerc(p1)}<\/b> <span class=\"muted\">su ${y-1} \u00b7 ${etich}<\/span><\/span><\/div>\n    <div class=\"k\"><span class=\"eyebrow\">${um?MESI_LUNGHI[um-1]+\" \"+y:\"Mese\"}${notaMese}<\/span><span class=\"v\">${e0(vm&&vm.v)}<\/span>\n      <span class=\"d\"><b class=\"${cls(p2)}\">${fPerc(p2)}<\/b> <span class=\"muted\">su ${MESI_LUNGHI[(um||1)-1]} ${y-1}<\/span><\/span><\/div>\n    <div class=\"k\"><span class=\"eyebrow\">Scontrino medio ${um?MESI[um-1].toLowerCase():\"\"}<\/span><span class=\"v\">${sc?e2(sc):\"\u2013\"}<\/span>\n      <span class=\"d muted\">${sc&&vm.s?eur0.format(vm.s)+\" scontrini\":\"dato disponibile con le casse\"}${scP?` \u00b7 ${y-1}: ${e2(scP)}`:\"\"}<\/span><\/div>\n    <div class=\"k\"><span class=\"eyebrow\">Anno migliore<\/span><span class=\"v\">${best?best.a:\"\u2013\"}<\/span>\n      <span class=\"d muted\">${best?e0(best.v):\"\"}<\/span><\/div>`;\n}\n\n/* ---------- grafico anni ---------- */\nfunction graficoAnni(){\n  const sel = gruppo.neg, anni = [...ANNI].reverse();\n  const W=520, H=260, L=40, R=8, T=18, B=26;\n  const serie = anni.map(a=>({a, parti: sel.map(n=>{ const t=anno([n],a); return t?t.v:0; })}));\n  const max = Math.max(1,...serie.map(s=>s.parti.reduce((x,y)=>x+y,0)));\n  const passo = niceStep(max);\n  const top = Math.ceil(max/passo)*passo;\n  const bw = (W-L-R)/anni.length, y = v=>T+(H-T-B)*(1-v/top);\n  let g = `<g class=\"griglia\">`;\n  for(let v=0; v<=top; v+=passo){ g+=`<line x1=\"${L}\" x2=\"${W-R}\" y1=\"${y(v)}\" y2=\"${y(v)}\"/>`; if(v) g+=`<text x=\"${L-5}\" y=\"${y(v)+4}\" text-anchor=\"end\">${kEur(v)}<\/text>`; }\n  g+=`<\/g>`;\n  const oggiA = RIF ? +RIF.slice(0,4) : null;\n  serie.forEach((s,i)=>{\n    const x = L+i*bw+bw*.18, w = bw*.64; let base=0;\n    s.parti.forEach((v,j)=>{ if(!v) return; const y0=y(base), y1=y(base+v); base+=v;\n      g+=`<rect class=\"barra\" x=\"${x}\" y=\"${y1}\" width=\"${w}\" height=\"${Math.max(0,y0-y1)}\" fill=\"${sel.length>2||gruppo.id===\"despar\"?COLORI[sel[j]]:(gruppo.colore||\"var(--accent)\")}\" opacity=\"${s.a===annoSel?1:.55}\" rx=\"2\"><title>${s.a} \u00b7 ${esc(NOME[sel[j]])}: ${e0(v)}<\/title><\/rect>`; });\n    const tot = s.parti.reduce((a,b)=>a+b,0);\n    if(tot) g+=`<text class=\"val\" x=\"${x+w/2}\" y=\"${y(tot)-4}\" text-anchor=\"middle\">${(tot/1e6).toLocaleString(\"it-IT\",{minimumFractionDigits:1,maximumFractionDigits:1})}<\/text>`;\n    g+=`<text x=\"${x+w/2}\" y=\"${H-8}\" text-anchor=\"middle\" style=\"${s.a===annoSel?\"fill:var(--ink);font-weight:600\":\"\"}\">\u2019${String(s.a).slice(2)}${s.a===oggiA?\"*\":\"\"}<\/text>`;\n  });\n  $(\"#g-anni\").innerHTML = `<svg viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"Incasso totale per anno\">${g}<\/svg>`;\n  $(\"#leg-anni\").innerHTML = (sel.length>1 ? sel.map(n=>`<span><span class=\"dot\" style=\"background:${COLORI[n]}\"><\/span>${esc(NOME[n])}<\/span>`).join(\"\") : \"\") + `<span>valori in milioni \u20ac<\/span>` + (oggiA?`<span>* in corso<\/span>`:\"\");\n}\nfunction niceStep(max){ const r=max/4, p=Math.pow(10,Math.floor(Math.log10(r))); const m=r/p; return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p; }\n\n/* ---------- grafico mesi ---------- */\nfunction graficoMesi(){\n  const sel = gruppo.neg, y = annoSel;\n  const W=620, H=260, L=8, R=10, T=16, B=24;\n  const righe = [\n    {a:y-2, col:\"var(--muted)\", op:.35, w:1.5},\n    {a:y-1, col:\"var(--muted)\", op:.9, w:2, dash:\"5 4\"},\n    {a:y, col:gruppo.colore||\"var(--accent)\", op:1, w:2.8}\n  ].map(r=>({...r, v:MESI.map((_,m)=>{ const x=meseSel(sel,`${r.a}-${pad(m+1)}`); return x?x.v:null; })}));\n  const vals = righe.flatMap(r=>r.v).filter(v=>v!=null);\n  if(!vals.length){ $(\"#g-mesi\").innerHTML=`<div class=\"vuoto\">Nessun dato per ${y}<\/div>`; return; }\n  const lo = Math.min(...vals)*.9, hi = Math.max(...vals)*1.05;\n  const passo = niceStep(hi-lo), a0 = Math.floor(lo/passo)*passo, a1 = Math.ceil(hi/passo)*passo;\n  const X = m=>L+ (W-L-R)*(m+.5)/12, Y = v=>T+(H-T-B)*(1-(v-a0)/(a1-a0));\n  let g = `<g class=\"griglia\">`;\n  for(let v=a0; v<=a1+1; v+=passo){ g+=`<line x1=\"${L}\" x2=\"${W-R}\" y1=\"${Y(v)}\" y2=\"${Y(v)}\"/><text x=\"${L}\" y=\"${Y(v)-3}\">${kEur(v)}<\/text>`; }\n  g+=`<\/g>`;\n  MESI.forEach((m,i)=>{ g+=`<text x=\"${X(i)}\" y=\"${H-6}\" text-anchor=\"middle\">${m}<\/text>`; });\n  for(const r of righe){\n    let d=\"\"; r.v.forEach((v,i)=>{ if(v==null) return; d+=(d&&r.v[i-1]!=null?\"L\":\"M\")+X(i).toFixed(1)+\" \"+Y(v).toFixed(1); });\n    g+=`<path d=\"${d}\" fill=\"none\" stroke=\"${r.col}\" stroke-width=\"${r.w}\" opacity=\"${r.op}\" ${r.dash?`stroke-dasharray=\"${r.dash}\"`:\"\"} stroke-linejoin=\"round\" stroke-linecap=\"round\"/>`;\n  }\n  const cur = righe[2];\n  cur.v.forEach((v,i)=>{ if(v==null) return; g+=`<circle cx=\"${X(i)}\" cy=\"${Y(v)}\" r=\"3.4\" fill=\"${cur.col}\"><title>${MESI_LUNGHI[i]} ${y}: ${e0(v)}${righe[1].v[i]!=null?\" \u00b7 \"+(y-1)+\": \"+e0(righe[1].v[i]):\"\"}<\/title><\/circle>`; });\n  let ult=-1; cur.v.forEach((v,i)=>{ if(v!=null) ult=i; });\n  if(ult>=0) g+=`<text class=\"val\" x=\"${Math.min(X(ult), W-R-30)}\" y=\"${Y(cur.v[ult])-9}\" text-anchor=\"middle\">${kEur(cur.v[ult])}<\/text>`;\n  $(\"#g-mesi\").innerHTML = `<svg viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"Incasso mese per mese\">${g}<\/svg>`;\n  $(\"#t-mesi\").textContent = `Mese per mese \u00b7 ${y}`;\n  $(\"#leg-mesi\").innerHTML = `<span><span class=\"dot\" style=\"background:${cur.col}\"><\/span>${y}<\/span><span><span class=\"dot\" style=\"background:var(--muted)\"><\/span>${y-1} (tratteggio)<\/span><span><span class=\"dot\" style=\"background:var(--muted);opacity:.4\"><\/span>${y-2}<\/span>`;\n}\n\n/* ---------- tabella anni x mesi ---------- */\nfunction tabellaAnni(){\n  const sel = gruppo.neg;\n  const tutti = ANNI.flatMap(a=>MESI.map((_,m)=>meseSel(sel,`${a}-${pad(m+1)}`))).filter(Boolean).map(x=>x.v);\n  const lo = Math.min(...tutti), hi = Math.max(...tutti);\n  let h = `<thead><tr><th>Anno<\/th>${MESI.map(m=>`<th>${m}<\/th>`).join(\"\")}<th>Totale<\/th><th>Var.<\/th><\/tr><\/thead><tbody>`;\n  for(const a of ANNI){\n    h += `<tr class=\"${a===annoSel?\"anno-sel\":\"\"}\"><td>${a}<\/td>`;\n    MESI.forEach((_,m)=>{\n      const ym = `${a}-${pad(m+1)}`, x = meseSel(sel,ym);\n      if(!x){ h+=`<td class=\"muted\">\u00b7<\/td>`; return; }\n      const cliccabile = sel.some(n=>MESI_CASSE[n][ym]);\n      const sele = meseAperto===ym;\n      if(vista===\"perc\"){\n        const p = meseSel(sel,`${a-1}-${pad(m+1)}`); const q = perc(x.v, p&&p.v);\n        h+=`<td class=\"${cls(q)}${cliccabile?\" cl\":\"\"}${sele?\" sel\":\"\"}\" ${cliccabile?`tabindex=\"0\" data-m=\"${ym}\"`:\"\"}>${fPerc(q)}<\/td>`;\n      } else {\n        const t = hi>lo ? (x.v-lo)/(hi-lo) : 0;\n        h+=`<td class=\"${cliccabile?\"cl\":\"\"}${x.xl?\" xl\":\"\"}${sele?\" sel\":\"\"}\" style=\"background:rgba(var(--heat),${(0.04+t*0.26).toFixed(3)})\" ${cliccabile?`tabindex=\"0\" data-m=\"${ym}\"`:\"\"} title=\"${MESI_LUNGHI[m]} ${a}: ${e2(x.v)}\">${eur0.format(x.v)}<\/td>`;\n      }\n    });\n    const t = anno(sel,a), tp = anno(sel,a-1);\n    const inCorso = RIF && +RIF.slice(0,4)===a;\n    let q = perc(t&&t.v, tp&&tp.v);\n    if(inCorso){ const mm=+RIF.slice(5,7); const tt=anno(sel,a,mm-1), pp=anno(sel,a-1,mm-1); q=perc(tt&&tt.v,pp&&pp.v); }\n    h += `<td class=\"tot\">${t?eur0.format(t.v):\"\u2013\"}<\/td><td class=\"${cls(q)}\" title=\"${inCorso?\"sui mesi chiusi\":\"\"}\">${fPerc(q)}${inCorso?\"*\":\"\"}<\/td><\/tr>`;\n  }\n  h += `<\/tbody>`;\n  $(\"#tab-anni\").innerHTML = h;\n}\n$(\"#tab-anni\").addEventListener(\"click\", e=>{ const td=e.target.closest(\"td[data-m]\"); if(td) apriMese(td.dataset.m); });\n$(\"#tab-anni\").addEventListener(\"keydown\", e=>{ if(e.key===\"Enter\"||e.key===\" \"){ const td=e.target.closest(\"td[data-m]\"); if(td){ e.preventDefault(); apriMese(td.dataset.m); } } });\nfunction apriMese(ym){ meseAperto=ym; annoSel=+ym.slice(0,4); $(\"#sel-anno\").value=annoSel; salva(); tutto(); $(\"#p-giorni\").scrollIntoView({behavior:matchMedia(\"(prefers-reduced-motion: reduce)\").matches?\"auto\":\"smooth\", block:\"start\"}); }\n\n/* ---------- giorni del mese ---------- */\nfunction giorni(){\n  const sel = gruppo.neg;\n  let ym = meseAperto;\n  if(!ym){ // ultimo mese dell'anno scelto con dati delle casse\n    for(let m=12;m>=1;m--){ const k=`${annoSel}-${pad(m)}`; if(sel.some(n=>MESI_CASSE[n][k])){ ym=k; break; } }\n  }\n  if(!ym){ $(\"#t-giorni\").textContent=\"Giorno per giorno\"; $(\"#leg-giorni\").innerHTML=\"\";\n    $(\"#giorni\").innerHTML=`<div class=\"vuoto\">Il dettaglio dei giorni arriva dai file delle casse (dal 2018). Per ${annoSel} ci sono solo i totali mensili del foglio Excel.<\/div>`; return; }\n  const [a,m] = ym.split(\"-\").map(Number);\n  const nGiorni = new Date(a,m,0).getDate();\n  const righe = [];\n  for(let d=1; d<=nGiorni; d++){\n    const k = `${ym}-${pad(d)}`;\n    const perNeg = sel.map(n=>{ const x=((D.giorni||{})[n]||{})[k]; return x?x:[0,0]; });\n    const v = perNeg.reduce((s,x)=>s+x[0],0), s = perNeg.reduce((t,x)=>t+x[1],0);\n    // stesso giorno della settimana, un anno prima (364 giorni)\n    const dt = new Date(a,m-1,d), prima = new Date(dt.getTime()-364*864e5);\n    const kp = `${prima.getFullYear()}-${pad(prima.getMonth()+1)}-${pad(prima.getDate())}`;\n    const vp = sel.reduce((t,n)=>t+((((D.giorni||{})[n]||{})[kp]||[0])[0]),0);\n    righe.push({d, dow:dt.getDay(), v, s, perNeg, vp, kp});\n  }\n  const max = Math.max(1,...righe.map(r=>Math.max(r.v,r.vp)));\n  const W=620, H=230, L=6, R=6, T=16, B=28, bw=(W-L-R)/nGiorni;\n  const Y = v=>T+(H-T-B)*(1-v/max);\n  let g = `<g class=\"griglia\"><line x1=\"${L}\" x2=\"${W-R}\" y1=\"${Y(0)}\" y2=\"${Y(0)}\"/><\/g>`;\n  righe.forEach((r,i)=>{\n    const x = L+i*bw;\n    let base=0;\n    r.perNeg.forEach((p,j)=>{ if(!p[0]) return; const y0=Y(base), y1=Y(base+p[0]); base+=p[0];\n      g+=`<rect data-g=\"${ym}-${pad(r.d)}\" style=\"cursor:pointer\" x=\"${x+bw*.14}\" y=\"${y1}\" width=\"${bw*.72}\" height=\"${Math.max(0,y0-y1)}\" fill=\"${sel.length>1?COLORI[sel[j]]:(gruppo.colore||\"var(--accent)\")}\" rx=\"1.5\"><title>${GIORNI_SETT[r.dow]} ${r.d}/${m}: ${e2(r.v)}${r.vp?\" \u00b7 anno prima \"+e0(r.vp):\"\"}<\/title><\/rect>`; });\n    if(r.vp) g+=`<line x1=\"${x+bw*.08}\" x2=\"${x+bw*.92}\" y1=\"${Y(r.vp)}\" y2=\"${Y(r.vp)}\" stroke=\"var(--ink)\" stroke-width=\"1.6\" opacity=\".55\"/>`;\n    g+=`<text x=\"${x+bw/2}\" y=\"${H-14}\" text-anchor=\"middle\" class=\"dn${r.dow===0?\" dom\":\"\"}\">${r.d}<\/text>`;\n    if(r.d===1||r.dow===1) g+=`<text x=\"${x+bw/2}\" y=\"${H-3}\" text-anchor=\"middle\" class=\"dw\">${GIORNI_SETT[r.dow]}<\/text>`;\n  });\n  const tot = righe.reduce((s,r)=>s+r.v,0), aperti = righe.filter(r=>r.v>0);\n  const scontrini = righe.reduce((s,r)=>s+r.s,0);\n  const migliore = aperti.reduce((b,r)=>!b||r.v>b.v?r:b,null), peggiore = aperti.reduce((b,r)=>!b||r.v<b.v?r:b,null);\n  $(\"#t-giorni\").textContent = `Giorno per giorno \u00b7 ${MESI_LUNGHI[m-1]} ${a}`;\n  $(\"#leg-giorni\").innerHTML = (sel.length>1? sel.map(n=>`<span><span class=\"dot\" style=\"background:${COLORI[n]}\"><\/span>${esc(NOME[n])}<\/span>`).join(\"\"):\"\") + `<span><span class=\"dot\" style=\"background:var(--ink);opacity:.55;height:2px\"><\/span>stesso giorno anno prima<\/span>`;\n  $(\"#giorni\").innerHTML = `<div class=\"giorni\">\n    <div class=\"scorri\"><svg viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"Incasso giornaliero\">${g}<\/svg><\/div>\n    <div class=\"scorri\"><table>\n      <tr><td>Incasso del mese<\/td><td>${e2(tot)}<\/td><\/tr>\n      <tr><td>Giorni con incasso<\/td><td>${aperti.length}<\/td><\/tr>\n      <tr><td>Media al giorno<\/td><td>${aperti.length?e2(tot/aperti.length):\"\u2013\"}<\/td><\/tr>\n      <tr><td>Scontrini<\/td><td>${eur0.format(scontrini)}<\/td><\/tr>\n      <tr><td>Scontrino medio<\/td><td>${scontrini?e2(tot/scontrini):\"\u2013\"}<\/td><\/tr>\n      <tr><td>Giorno migliore<\/td><td>${migliore?`${GIORNI_SETT[migliore.dow]} ${migliore.d} \u00b7 ${e0(migliore.v)}`:\"\u2013\"}<\/td><\/tr>\n      <tr><td>Giorno pi\u00f9 basso<\/td><td>${peggiore?`${GIORNI_SETT[peggiore.dow]} ${peggiore.d} \u00b7 ${e0(peggiore.v)}`:\"\u2013\"}<\/td><\/tr>\n    <\/table><\/div><\/div>`;\n}\n\n/* ---------- tabella per negozio (come il foglio Excel) ---------- */\nfunction tabellaNegozi(){\n  const y = annoSel;\n  $(\"#t-negozi\").textContent = `Per punto vendita \u00b7 ${y}`;\n  let h = `<thead><tr><th>Punto vendita<\/th>${MESI.map(m=>`<th>${m}<\/th>`).join(\"\")}<th>Totale<\/th><th>Var.<\/th><\/tr><\/thead><tbody>`;\n  const riga = (nome, sel, colore, forte)=>{\n    let r = `<tr><td>${colore?`<span class=\"dot\" style=\"background:${colore}\"><\/span> `:\"\"}${forte?`<b>${esc(nome)}<\/b>`:esc(nome)}<\/td>`;\n    MESI.forEach((_,m)=>{ const x=meseSel(sel,`${y}-${pad(m+1)}`); r+=`<td class=\"${x&&x.xl?\"xl\":\"\"}\">${x?eur0.format(x.v):\"<span class='muted'>\u00b7<\/span>\"}<\/td>`; });\n    const t=anno(sel,y), tp=anno(sel,y-1);\n    const inCorso = RIF && +RIF.slice(0,4)===y;\n    let q = perc(t&&t.v,tp&&tp.v);\n    if(inCorso){ const mm=+RIF.slice(5,7); const tt=anno(sel,y,mm-1), pp=anno(sel,y-1,mm-1); q=perc(tt&&tt.v,pp&&pp.v); }\n    return r+`<td class=\"tot\">${t?eur0.format(t.v):\"\u2013\"}<\/td><td class=\"${cls(q)}\">${fPerc(q)}${inCorso?\"*\":\"\"}<\/td><\/tr>`;\n  };\n  const desp = NEG.filter(n=>n!==\"SOAP\");\n  desp.forEach(n=>h+=riga(NOME[n],[n],COLORI[n]));\n  if(desp.length>1) h+=riga(\"Totale Despar\",desp,null,true);\n  if(NEG.includes(\"SOAP\")) h+=riga(NOME.SOAP,[\"SOAP\"],COLORI.SOAP);\n  h+=riga(\"Totale gruppo\",NEG,null,true);\n  $(\"#tab-negozi\").innerHTML = h+`<\/tbody>`;\n}\n\nfunction piede(){\n  $(\"#piede\").innerHTML = `<span>Fonte: file degli scontrini delle casse (C:\\\\e-shop\\\\MONITOR\\\\Scontrini), letti ogni sera dal PC dei supermercati; il Soap Shop arriva dal suo PC. I mesi senza dati delle casse vengono dal foglio \u201cAndamento Fatturato Corrispettivi\u201d.<\/span>\n  <span>* anno in corso: la variazione \u00e8 calcolata sui mesi gi\u00e0 chiusi. Importi IVA inclusa, come battuti in cassa.<\/span>`;\n}\n\n\n/* ---------- incasso del giorno ---------- */\nconst TUTTI_GIORNI = [...new Set(NEG.flatMap(n=>Object.keys((D.giorni||{})[n]||{})))].sort();\nlet giornoSel = null;\nconst iso = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;\nconst daIso = k=>new Date(+k.slice(0,4), +k.slice(5,7)-1, +k.slice(8,10));\nconst sposta = (k,n)=>{ const d=daIso(k); d.setDate(d.getDate()+n); return iso(d); };\nconst valG = (n,k)=>((D.giorni||{})[n]||{})[k] || null;\nfunction dataLunga(k){ const d=daIso(k); return `${[\"domenica\",\"luned\u00ec\",\"marted\u00ec\",\"mercoled\u00ec\",\"gioved\u00ec\",\"venerd\u00ec\",\"sabato\"][d.getDay()]} ${d.getDate()} ${MESI_LUNGHI[d.getMonth()]} ${d.getFullYear()}`; }\nfunction dataCorta(k){ const d=daIso(k); return `${GIORNI_SETT[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(2)}`; }\nfunction confronto(v, vp){ const p=perc(v,vp); return vp ? `<b class=\"${cls(p)}\">${fPerc(p)}<\/b>` : \"<span>\u2013<\/span>\"; }\n\nfunction giornoDelGiorno(){\n  const box = $(\"#g-schede\");\n  if(!TUTTI_GIORNI.length){\n    $(\"#p-giorno\").querySelector(\".navg\").hidden = true;\n    box.innerHTML = `<div class=\"vuoto\" style=\"grid-column:1/-1\">Gli incassi giorno per giorno compaiono dopo la prima lettura delle casse fatta dal PC dei supermercati.<\/div>`;\n    $(\"#tab-giorni\").innerHTML=\"\"; $(\"#t-elenco\").hidden=true; return;\n  }\n  if(!giornoSel) giornoSel = TUTTI_GIORNI[TUTTI_GIORNI.length-1];\n  const k = giornoSel, primo = TUTTI_GIORNI[0], ultimo = TUTTI_GIORNI[TUTTI_GIORNI.length-1];\n  const inp = $(\"#g-data\"); inp.min=primo; inp.max=ultimo; inp.value=k;\n  $(\"#g-prec\").disabled = k<=primo; $(\"#g-succ\").disabled = k>=ultimo; $(\"#g-ultimo\").disabled = k===ultimo;\n  $(\"#t-giorno\").textContent = \"Incasso di \" + dataLunga(k);\n  const k7 = sposta(k,-7), k364 = sposta(k,-364);\n  const etB = dataCorta(k7).slice(0,9), etC = dataCorta(k364);\n\n  const scheda = (nome, sel, colore, totale)=>{\n    const somma = kk=>{ let v=0,s=0,ok=false; for(const n of sel){ const x=valG(n,kk); if(x){ v+=x[0]; s+=x[1]; ok=true; } } return ok?{v,s}:null; };\n    const a=somma(k), b=somma(k7), c=somma(k364);\n    const conDati = sel.some(n=>PRIMO[n] && PRIMO[n]<=k && ULTIMO[n]>=k);\n    let corpo;\n    if(a) corpo = `<span class=\"v\">${e2(a.v)}<\/span>\n      <span class=\"r\"><span>${eur0.format(a.s)} scontrini<\/span><span>medio ${a.s?e2(a.v/a.s):\"\u2013\"}<\/span><\/span>\n      <span class=\"r\"><span>${etB}: ${b?e0(b.v):\"\u2013\"}<\/span>${confronto(a.v,b&&b.v)}<\/span>\n      <span class=\"r\"><span>${etC}: ${c?e0(c.v):\"\u2013\"}<\/span>${confronto(a.v,c&&c.v)}<\/span>`;\n    else corpo = `<span class=\"v chiuso\">${conDati?\"chiuso\":\"nessun dato\"}<\/span><span class=\"r\"><span>${etC}: ${c?e0(c.v):\"\u2013\"}<\/span><\/span>`;\n    return `<div class=\"scheda${totale?\" totale\":\"\"}\"><span class=\"n\">${colore?`<span class=\"dot\" style=\"background:${colore}\"><\/span>`:\"\"}${esc(nome)}<\/span>${corpo}<\/div>`;\n  };\n  let h = NEG.map(n=>scheda(NOME[n],[n],COLORI[n])).join(\"\");\n  const desp = NEG.filter(n=>n!==\"SOAP\");\n  if(desp.length>1) h += scheda(\"I due Despar\", desp, null, false);\n  h += scheda(\"Totale gruppo\", NEG, null, true);\n  box.innerHTML = h;\n\n  // elenco degli ultimi 14 giorni fino al giorno scelto\n  $(\"#t-elenco\").hidden=false;\n  $(\"#t-elenco\").textContent = `I 14 giorni fino al ${dataCorta(k).slice(4)}`;\n  let t = `<thead><tr><th>Giorno<\/th>${NEG.map(n=>`<th>${esc(NOME[n])}<\/th>`).join(\"\")}<th>Totale<\/th><th>Scontrini<\/th><th>Anno scorso<\/th><th>Var.<\/th><\/tr><\/thead><tbody>`;\n  for(let i=0;i<14;i++){\n    const kk = sposta(k,-i); if(kk<primo) break;\n    const vals = NEG.map(n=>valG(n,kk));\n    const tot = vals.reduce((s,x)=>s+(x?x[0]:0),0), sc = vals.reduce((s,x)=>s+(x?x[1]:0),0);\n    const prima = NEG.reduce((s,n)=>s+((valG(n,sposta(kk,-364))||[0])[0]),0);\n    const q = tot && prima ? perc(tot,prima) : null;\n    t += `<tr class=\"cliccabile${daIso(kk).getDay()===0?\" dom\":\"\"}${kk===k?\" gsel\":\"\"}\" data-g=\"${kk}\" tabindex=\"0\"><td>${dataCorta(kk)}<\/td>${vals.map(x=>`<td>${x?eur2.format(x[0]):\"<span class='muted'>\u2013<\/span>\"}<\/td>`).join(\"\")}<td class=\"tot\">${tot?eur2.format(tot):\"<span class='muted'>chiuso<\/span>\"}<\/td><td>${sc?eur0.format(sc):\"\"}<\/td><td class=\"muted\">${prima?eur0.format(prima):\"\u2013\"}<\/td><td class=\"${cls(q)}\">${fPerc(q)}<\/td><\/tr>`;\n  }\n  $(\"#tab-giorni\").innerHTML = t+\"<\/tbody>\";\n}\nfunction vaiGiorno(k){\n  if(!TUTTI_GIORNI.length) return;\n  const primo=TUTTI_GIORNI[0], ultimo=TUTTI_GIORNI[TUTTI_GIORNI.length-1];\n  giornoSel = k<primo?primo:(k>ultimo?ultimo:k);\n  giornoDelGiorno();\n}\n$(\"#g-prec\").onclick = ()=>vaiGiorno(sposta(giornoSel,-1));\n$(\"#g-succ\").onclick = ()=>vaiGiorno(sposta(giornoSel,1));\n$(\"#g-ultimo\").onclick = ()=>vaiGiorno(TUTTI_GIORNI[TUTTI_GIORNI.length-1]);\n$(\"#g-data\").onchange = e=>{ if(e.target.value) vaiGiorno(e.target.value); };\n$(\"#tab-giorni\").addEventListener(\"click\", e=>{ const tr=e.target.closest(\"tr[data-g]\"); if(tr) vaiGiorno(tr.dataset.g); });\n$(\"#tab-giorni\").addEventListener(\"keydown\", e=>{ if(e.key===\"Enter\"){ const tr=e.target.closest(\"tr[data-g]\"); if(tr) vaiGiorno(tr.dataset.g); } });\n// dalla griglia dei giorni del mese: toccando una barra si apre quel giorno\n$(\"#giorni\").addEventListener(\"click\", e=>{ const r=e.target.closest(\"[data-g]\"); if(r){ vaiGiorno(r.dataset.g); $(\"#p-giorno\").scrollIntoView({block:\"start\"}); } });\n\nfunction tutto(){ testata(); kpi(); graficoAnni(); graficoMesi(); tabellaAnni(); giorni(); tabellaNegozi(); piede(); }\ngiornoDelGiorno();\ntutto();\n";
+const CHIAVE = "storico-incassi-pw";
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function decifra(pw){
+  const r = await fetch("dati.json?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("rete");
+  const j = await r.json();
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode(pw), "PBKDF2", false, ["deriveBits"]);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2", hash:"SHA-256", salt:b64(j.sale), iterations:j.it}, base, 512));
+  const kAes = await crypto.subtle.importKey("raw", bits.slice(0,32), "AES-CTR", false, ["decrypt"]);
+  const kMac = await crypto.subtle.importKey("raw", bits.slice(32), {name:"HMAC", hash:"SHA-256"}, false, ["verify"]);
+  const iv = b64(j.iv), ct = b64(j.dati);
+  const firmati = new Uint8Array(iv.length + ct.length); firmati.set(iv); firmati.set(ct, iv.length);
+  if(!await crypto.subtle.verify("HMAC", kMac, b64(j.firma), firmati)) throw new Error("password");
+  const chiaro = await crypto.subtle.decrypt({name:"AES-CTR", counter:iv, length:128}, kAes, ct);
+  const flusso = new Blob([chiaro]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return JSON.parse(await new Response(flusso).text());
+}
+
+let avviata = false;
+async function entra(pw, ricorda){
+  const err = document.getElementById("errore");
+  err.textContent = "Apertura…";
+  try{
+    window.__DATI = await decifra(pw);
+  }catch(e){
+    err.textContent = e.message === "password" ? "Password sbagliata." :
+      (e.message === "rete" || e instanceof TypeError ? "Nessuna connessione: riprova tra poco." : "Impossibile aprire i dati.");
+    if(e.message === "password"){ try{ localStorage.removeItem(CHIAVE); }catch(_){} }
+    document.getElementById("accesso").hidden = false;
+    return;
+  }
+  if(ricorda){ try{ localStorage.setItem(CHIAVE, pw); }catch(_){} }
+  document.getElementById("accesso").hidden = true;
+  document.getElementById("app").hidden = false;
+  document.getElementById("esci").hidden = false;
+  if(!avviata){ avviata = true; const s = document.createElement("script"); s.textContent = PROGRAMMA; document.body.appendChild(s); }
+  else location.reload();
+}
+
+document.getElementById("f-accesso").addEventListener("submit", e => {
+  e.preventDefault();
+  entra(document.getElementById("pw").value, document.getElementById("ricorda").checked);
+});
+document.getElementById("esci").onclick = () => { try{ localStorage.removeItem(CHIAVE); }catch(_){} location.reload(); };
+
+// se l'app resta aperta in sottofondo, al ritorno dopo 30 minuti si ricaricano i dati
+let nascosta = 0;
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) nascosta = Date.now();
+  else if(nascosta && Date.now() - nascosta > 30*60*1000 && avviata) location.reload();
+});
+
+let salvata = null;
+try{ salvata = localStorage.getItem(CHIAVE); }catch(_){}
+if(salvata){ document.getElementById("accesso").hidden = true; entra(salvata, true); }
+</script>
+</body>
+</html>
