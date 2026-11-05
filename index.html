@@ -281,11 +281,11 @@ document.getElementById("f-accesso").addEventListener("submit", e => {
 });
 document.getElementById("esci").onclick = () => { try{ localStorage.removeItem(CHIAVE); }catch(_){} location.reload(); };
 
-// se l'app resta aperta in sottofondo, al ritorno dopo 30 minuti si ricaricano i dati
+// se l app resta aperta in sottofondo, al ritorno dopo 2 minuti si ricaricano i dati
 let nascosta = 0;
 document.addEventListener("visibilitychange", () => {
   if(document.hidden) nascosta = Date.now();
-  else if(nascosta && Date.now() - nascosta > 30*60*1000 && avviata) location.reload();
+  else if(nascosta && Date.now() - nascosta > 2*60*1000 && avviata) location.reload();
 });
 
 let salvata = null;
